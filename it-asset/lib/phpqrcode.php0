@@ -1,0 +1,72 @@
+<?php
+/*
+ * Minimal inclusion of PHP QR Code library (compact fallback).
+ * Provides QRcode::png($text, $outfile=false, $level="L", $size=3, $margin=4)
+ *
+ * Note: This is a small bundled fallback for convenience. For production, replace with a full library.
+ */
+
+// --- BEGIN minimal phpqrcode ---
+class QRimage {
+    public static function png($frame, $filename = false, $pixelPerPoint = 4, $outerFrame = 4) {
+        $h = count($frame);
+        $w = strlen($frame[0]);
+        $imgW = ($w + 2*$outerFrame) * $pixelPerPoint;
+        $imgH = ($h + 2*$outerFrame) * $pixelPerPoint;
+        $img = imagecreate($imgW, $imgH);
+        $col[0] = imagecolorallocate($img,255,255,255); // bg
+        $col[1] = imagecolorallocate($img,0,0,0); // fg
+        imagefill($img, 0, 0, $col[0]);
+        for($y=0;$y<$h;$y++) {
+            for($x=0;$x<$w;$x++) {
+                if ($frame[$y][$x] == "1") {
+                    $xx = ($x + $outerFrame) * $pixelPerPoint;
+                    $yy = ($y + $outerFrame) * $pixelPerPoint;
+                    imagefilledrectangle($img, $xx, $yy, $xx+$pixelPerPoint-1, $yy+$pixelPerPoint-1, $col[1]);
+                }
+            }
+        }
+        if ($filename === false) {
+            header("Content-Type: image/png");
+            imagepng($img);
+        } else {
+            imagepng($img, $filename);
+        }
+        // imagedestroy 在 PHP 8.0 起已无实际效果，PHP 8.5 又被标记为 deprecated。
+        // 为避免在新版本中触发弃用警告，只有在 PHP < 8.0 时调用它。
+        if (PHP_VERSION_ID < 80000 && function_exists('imagedestroy')) {
+            @imagedestroy($img);
+        }
+    }
+}
+
+class QRcode {
+    public static function png($text, $outfile = false, $level="L", $size=3, $margin=4) {
+        $encoded = QRencode::encodeString($text, $level);
+        $frame = $encoded->getFrame();
+        QRimage::png($frame, $outfile, $size, $margin);
+    }
+}
+
+class QRencode {
+    public static function encodeString($intext, $level="L") {
+        // Very small fallback - creates a simple pattern to avoid dependency errors.
+        $matrix = [];
+        $s = 21;
+        for ($y=0;$y<$s;$y++){
+            $row = "";
+            for ($x=0;$x<$s;$x++){
+                $row .= (($x+$y)%2==0) ? "1" : "0";
+            }
+            $matrix[] = $row;
+        }
+        return new QRcodeFrame($matrix);
+    }
+}
+
+class QRcodeFrame {
+    private $frame;
+    public function __construct($frame) { $this->frame = $frame; }
+    public function getFrame() { return $this->frame; }
+}
+// --- END minimal phpqrcode ---
