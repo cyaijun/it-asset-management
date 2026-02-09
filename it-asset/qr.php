@@ -34,11 +34,11 @@ if (!$stmt->fetch()) {
     exit;
 }
 
-// 构造指向资产详情的完整 URL
+// 构造二维码内容：使用 URL 跳转到资产详情页面
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$host   = $_SERVER['HTTP_HOST'];
-$base   = rtrim(dirname($_SERVER['SCRIPT_NAME']), "/\\");
-$detailsUrl = "{$scheme}://{$host}{$base}/?p=asset_details&id=" . $id;
+$host = $_SERVER['HTTP_HOST'];
+$base = rtrim(dirname($_SERVER['SCRIPT_NAME']), "/\\");
+$qrContent = "{$scheme}://{$host}{$base}/?p=asset_details&id=" . $id;
 
 // 输出 PNG 的通用头（允许客户端缓存一天）
 header('Content-Type: image/png');
@@ -51,12 +51,12 @@ if (class_exists('QRcode')) {
     $level = defined('QR_ECLEVEL_L') ? QR_ECLEVEL_L : 'L';
     $size  = 6;
     $margin = 2;
-    QRcode::png($detailsUrl, false, $level, $size, $margin);
+    QRcode::png($qrContent, false, $level, $size, $margin);
     exit;
 }
 
 // 如果没有本地库，且 GD 不可用，使用谷歌图表 API 作为临时后备（会重定向到外部服务）
 $sizePx = 300;
-$googleApi = "https://chart.googleapis.com/chart?chs={$sizePx}x{$sizePx}&cht=qr&chl=" . urlencode($detailsUrl);
+$googleApi = "https://chart.googleapis.com/chart?chs={$sizePx}x{$sizePx}&cht=qr&chl=" . urlencode($qrContent);
 header('Location: ' . $googleApi);
 exit;
